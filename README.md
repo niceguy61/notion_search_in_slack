@@ -26,6 +26,17 @@ npm start
 - App Name, Workspace 선택 후 생성
 - Oauth & Permission 선택 후 아래의 권한 추가 필요
 
+## Slack Slash Command 설정
+- Slach Commands 선택
+- Create new Command 선택
+- /원하는 커맨드 추가
+- 실행되는 URL 설정
+- Short Description : 설명
+- Usage Hint : 힌트
+- 생성
+- URL이 없어서 테스트가 어려운 경우, ngrok을 사용하여 조치할 것.
+- 참조한 블로그 주소 : https://velog.io/@kya754/ngrok-%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0
+
 ## Slackbot Oauth & Permission
 - chat:write: 이 권한은 봇이 메시지를 Slack 채널 또는 DM에 게시하는 데 필요합니다.
 - commands: Slash Command를 사용하기 위한 권한으로, 이 권한을 허용해야 봇이 사용자의 명령을 인식하고 처리할 수 있습니다.
