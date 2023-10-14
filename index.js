@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
+require('dotenv').config();
 
 const app = express();
 const port = 3000; // 원하는 포트 번호로 변경
@@ -29,8 +30,8 @@ app.post('/', async (req, res) => {
 
 // Notion API와 통신하여 검색 수행
 async function searchInNotion(query) {
-  const NOTION_API_KEY = ''; // Notion API 토큰
-  const NOTION_DATABASE_ID = ''; // 검색하려는 Notion 데이터베이스 ID
+  const NOTION_API_KEY = process.env.NOTION_API_KEY; // Notion API 토큰
+  const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID; // 검색하려는 Notion 데이터베이스 ID
 
   const notionApiUrl = `https://api.notion.com/v1/databases/${NOTION_DATABASE_ID}/query`;
   const headers = {
