@@ -1,7 +1,7 @@
+![N|Solid](https://capsule-render.vercel.app/api?type=waving&color=auto&height=200&section=header&text=To%20The%20DevOps&fontSize=90)
 # Notion Search In Slack
 
-![N|Solid](https://capsule-render.vercel.app/api?type=waving&color=auto&height=200&section=header&text=To%20The%20DevOps&fontSize=90)
-
+## Run Command
 ```
 npm i
 npm start
