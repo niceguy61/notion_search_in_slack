@@ -21,15 +21,109 @@ function formatDateFromNotion(notionDate) {
   return formattedDate;
 }
 
+// 검색 쿼리를 생성하는 함수
+function generateSearchQuery(searchTerms) {
+  if (!searchTerms) {
+    return null; // 검색 조건이 없는 경우 null 반환
+  }
+
+  let filter;
+  const searchConditions = searchTerms.split('||');
+
+  if (searchConditions.length === 1) {
+    // ||로 분리한 배열의 길이가 1이면, Task 검색
+    filter = {
+      filter: {
+        property: 'Task',
+        text: {
+          contains: searchConditions[0],
+        },
+      },
+    };
+  } else if (searchConditions.length === 3) {
+    // ||로 분리한 배열의 길이가 3이면, 멀티 검색 조건 사용
+    const searchTerm = searchConditions[0];
+    const searchType = searchConditions[1];
+    const searchDate = searchConditions[2];
+
+    if (searchType === 'task-id' && /^\d+$/.test(searchDate)) {
+      // Task ID로 검색 (숫자 값)
+      filter = {
+        filter: {
+          property: 'Task-id.unique_id.number',
+          number: {
+            equals: parseInt(searchTerm),
+          },
+        },
+      };
+    } else if (/^\d{6}$/.test(searchDate)) {
+      // yymmdd 형태의 날짜로 검색
+      const formattedDate = `20${searchDate.substr(0, 2)}-${searchDate.substr(2, 2)}-${searchDate.substr(4, 2)}`;
+      filter = {
+        filter: {
+          property: 'created_time.start.on_or_after',
+          date: {
+            start: formattedDate,
+          },
+        },
+      };
+    } else {
+      // 다른 검색 타입이 주어진 경우, Task 검색으로 처리
+      filter = {
+        filter: {
+          property: 'Task',
+          text: {
+            contains: searchTerm,
+          },
+        },
+      };
+    }
+  } else {
+    // 이외의 경우, Task 검색으로 처리
+    filter = {
+      filter: {
+        property: 'Task',
+        text: {
+          contains: searchTerms,
+        },
+      },
+    };
+  }
+  return filter;
+}
+
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Slack 커맨드 처리
-app.post('/', async (req, res) => {
+app.post('/task_search', async (req, res) => {
   const searchQuery = req.body.text; // 슬랙 커맨드에서 입력 받은 검색 텍스트
 
   try {
     // Notion API를 호출하여 검색 수행
     const notionResponse = await searchInNotion(searchQuery);
+
+    // Slack에 응답 보내기
+    const slackResponse = {
+      response_type: 'in_channel', // 'in_channel' 또는 'ephemeral' (비공개 응답) 설정 가능
+      text: '검색 결과:',
+      attachments: notionResponse, // 검색 결과를 attachments에 추가
+    };
+    res.json(slackResponse);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('오류가 발생했습니다.');
+  }
+});
+
+app.post('/doc_search', async (req, res) => {
+  const searchQuery = req.body.text; // 슬랙 커맨드에서 입력 받은 검색 텍스트
+  const searchParams = {
+    query: searchQuery,
+  };
+
+  try {
+    // Notion API를 호출하여 검색 수행
+    const notionResponse = await searchInNotionDoc(searchQuery);
 
     // Slack에 응답 보내기
     const slackResponse = {
@@ -55,6 +149,8 @@ async function searchInNotion(query) {
     'Content-Type': 'application/json',
     'Notion-Version': '2021-05-13', // Notion API 버전 설정
   };
+
+  const generateSearchQuerys = generateSearchQuery(query);
 
   const requestBody = {
     filter: {
@@ -89,6 +185,62 @@ async function searchInNotion(query) {
             { title: '생성 일시', value: createdTime, short: true }
           ],
         };
+      });
+      
+      return formattedResults;
+    } else {
+      return [{ text: '검색 결과 없음' }];
+    }
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function searchInNotionDoc(query) {
+  const NOTION_API_KEY = process.env.NOTION_API_KEY; // Notion API 토큰
+  
+  const notionApiUrl = `https://api.notion.com/v1/search`;
+  const headers = {
+    'Authorization': `Bearer ${NOTION_API_KEY}`,
+    'Content-Type': 'application/json',
+    'Notion-Version': '2021-05-13', // Notion API 버전 설정
+  };
+  
+  const searchParams = {
+    query: query,
+    filter: {
+      value: 'page',
+      property: 'object'
+    },
+    sort: {
+      direction: 'ascending',
+      timestamp: 'last_edited_time'
+    }
+  };
+  
+  try {
+    const response = await axios.post(notionApiUrl, searchParams, { headers });
+    const results = response.data.results;
+    
+    if (results.length > 0) {
+      // 검색 결과 처리
+      const formattedResults = results.map((item) => {
+        let title;
+        if(item.properties.Task != null) {
+          title = item.properties.Task.title[0].plain_text || null;
+        } else {
+          title = item.properties.title.title[0].plain_text || null;
+          const url = item.url; // Notion 문서의 URL
+          const createdTime = formatDateFromNotion(item.created_time);
+
+          return {
+            title: title,
+            title_link: url,
+            fields: [
+              { title: '생성 일시', value: createdTime, short: true }
+            ],
+          };
+        }
       });
       
       return formattedResults;
