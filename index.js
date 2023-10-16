@@ -4,7 +4,7 @@ const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
-const port = 3000; // 원하는 포트 번호로 변경
+const port = 9876; // 원하는 포트 번호로 변경
 
 function formatDateFromNotion(notionDate) {
   const date = new Date(notionDate);
