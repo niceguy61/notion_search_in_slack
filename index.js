@@ -92,6 +92,7 @@ function generateSearchQuery(searchTerms) {
   return filter;
 }
 
+app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Slack 커맨드 처리
@@ -117,9 +118,6 @@ app.post('/task_search', async (req, res) => {
 
 app.post('/doc_search', async (req, res) => {
   const searchQuery = req.body.text; // 슬랙 커맨드에서 입력 받은 검색 텍스트
-  const searchParams = {
-    query: searchQuery,
-  };
 
   try {
     // Notion API를 호출하여 검색 수행
@@ -217,31 +215,41 @@ async function searchInNotionDoc(query) {
       timestamp: 'last_edited_time'
     }
   };
-  
+
   try {
     const response = await axios.post(notionApiUrl, searchParams, { headers });
     const results = response.data.results;
-    
     if (results.length > 0) {
       // 검색 결과 처리
       const formattedResults = results.map((item) => {
         let title;
+        const createdTime = formatDateFromNotion(item.created_time);
+        const url = item.url; // Notion 문서의 URL
         if(item.properties.Task != null) {
-          title = item.properties.Task.title[0].plain_text || null;
+          if(item.properties.Task.title.length > 0) {
+            title = item.properties.Task.title[0].plain_text || null;
+            return {
+              title: title,
+              title_link: url,
+              fields: [
+                { title: '생성 일시', value: createdTime, short: true }
+              ],
+            };
+          }
         } else {
-          title = item.properties.title.title[0].plain_text || null;
-          const url = item.url; // Notion 문서의 URL
-          const createdTime = formatDateFromNotion(item.created_time);
-
-          return {
-            title: title,
-            title_link: url,
-            fields: [
-              { title: '생성 일시', value: createdTime, short: true }
-            ],
-          };
+          if(item.properties.title.title.length > 0) {
+            title = item.properties.title.title[0].plain_text || null;
+            return {
+              title: title,
+              title_link: url,
+              fields: [
+                { title: '생성 일시', value: createdTime, short: true }
+              ],
+            };
+          }
         }
       });
+      
       
       return formattedResults;
     } else {
