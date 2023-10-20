@@ -227,14 +227,14 @@ async function searchInNotionDoc(query) {
         const url = item.url; // Notion 문서의 URL
         if(item.properties.Task != null) {
           if(item.properties.Task.title.length > 0) {
-            title = item.properties.Task.title[0].plain_text || null;
-            return {
-              title: title,
-              title_link: url,
-              fields: [
-                { title: '생성 일시', value: createdTime, short: true }
-              ],
-            };
+            // title = item.properties.Task.title[0].plain_text || null;
+            // return {
+            //   title: title,
+            //   title_link: url,
+            //   fields: [
+            //     { title: '생성 일시', value: createdTime, short: true }
+            //   ],
+            // };
           }
         } else {
           if(item.properties.title.title.length > 0) {
